@@ -27,6 +27,7 @@ public class AssetBrowserPanel : Widget, IBrowserPanel
 
     private string _assetsPath;
     private string _codePath;
+    private string _editorPath;
 
     // Unique panel ID for this panel instance
     private string _panelId;
@@ -117,6 +118,12 @@ public class AssetBrowserPanel : Widget, IBrowserPanel
 
         _assetsPath = Project.Current?.GetAssetsPath();
         _codePath = Project.Current?.GetCodePath();
+
+        var rootPath = Project.Current?.GetRootPath();
+        if (!string.IsNullOrEmpty(rootPath))
+        {
+            _editorPath = Path.Combine(rootPath, "Editor");
+        }
 
         // Load saved expanded state from previous session
         LoadExpandedState();
@@ -284,6 +291,25 @@ public class AssetBrowserPanel : Widget, IBrowserPanel
         if (!string.IsNullOrEmpty(_codePath) && Directory.Exists(_codePath))
         {
             ScanDirectoryForMatches(_codePath, _searchFilter);
+        }
+
+        // Scan Editor folder
+        if (!string.IsNullOrEmpty(_editorPath) && Directory.Exists(_editorPath))
+        {
+            ScanDirectoryForMatches(_editorPath, _searchFilter);
+        }
+
+        // Scan Libraries (other projects in the workspace)
+        foreach (var project in EditorUtility.Projects.GetAll())
+        {
+            if (project == Project.Current || project.Config.Ident == "menu")
+                continue;
+
+            var projectRoot = project.GetRootPath();
+            if (!string.IsNullOrEmpty(projectRoot) && Directory.Exists(projectRoot))
+            {
+                ScanDirectoryForMatches(projectRoot, _searchFilter);
+            }
         }
 
         // Scan Core folder
@@ -561,6 +587,41 @@ public class AssetBrowserPanel : Widget, IBrowserPanel
         {
             var codeNode = new AssetFolderNode(_codePath, "Code", "code");
             _treeView.AddItem(codeNode);
+        }
+
+        // Add Editor folder
+        if (!string.IsNullOrEmpty(_editorPath) && Directory.Exists(_editorPath))
+        {
+            var editorNode = new AssetFolderNode(_editorPath, "Editor", "edit");
+            _treeView.AddItem(editorNode);
+        }
+
+        // Add Libraries section - shows all other projects in the workspace
+        var libraryProjects = EditorUtility.Projects.GetAll()
+            .Where(p => p != Project.Current && p.Config.Ident != "menu")
+            .OrderBy(p => p.Config.Title)
+            .ToList();
+
+        {
+            var librariesHeader = new TreeNode.SmallHeader("class", "Libraries");
+            var addedCount = 0;
+
+            foreach (var project in libraryProjects)
+            {
+                var projectRoot = project.GetRootPath();
+                if (!string.IsNullOrEmpty(projectRoot) && Directory.Exists(projectRoot))
+                {
+                    var title = !string.IsNullOrEmpty(project.Config.Title) ? project.Config.Title : project.Config.Ident;
+                    var projectNode = new AssetFolderNode(projectRoot, title, "inventory_2");
+                    librariesHeader.AddItem(projectNode);
+                    addedCount++;
+                }
+            }
+
+            if (addedCount > 0)
+            {
+                _treeView.AddItem(librariesHeader);
+            }
         }
 
         // Add Parent Package if this is an addon with a parent (e.g. sandbox gamemode)
