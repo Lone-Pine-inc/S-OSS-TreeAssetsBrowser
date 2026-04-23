@@ -1,4 +1,5 @@
 using Editor;
+using Label = Editor.Label;
 using Sandbox;
 using System;
 using System.Collections.Generic;
@@ -233,6 +234,7 @@ internal class IconGridCanvas : Widget
     private List<GridItem> _items = new();
     private int _hoveredIndex = -1;
     private int _selectedIndex = -1;
+    private HashSet<int> _selectedIndices = new();
 
     public Action<string> OnFolderNavigate;
 
@@ -257,6 +259,7 @@ internal class IconGridCanvas : Widget
         _items.Clear();
         _hoveredIndex = -1;
         _selectedIndex = -1;
+        _selectedIndices.Clear();
 
         try
         {
@@ -320,6 +323,7 @@ internal class IconGridCanvas : Widget
         _items.Clear();
         _hoveredIndex = -1;
         _selectedIndex = -1;
+        _selectedIndices.Clear();
 
         foreach (var pkg in packages)
         {
@@ -390,7 +394,7 @@ internal class IconGridCanvas : Widget
         var item = _items[index];
 
         // Background
-        if (index == _selectedIndex)
+        if (_selectedIndices.Contains(index))
         {
             Paint.SetBrush(Theme.Primary.WithAlpha(0.3f));
             Paint.DrawRect(rect, 4);
@@ -535,12 +539,35 @@ internal class IconGridCanvas : Widget
 
             if (index >= 0)
             {
-                _selectedIndex = index;
-                var item = _items[index];
+                if (e.HasCtrl)
+                {
+                    // Ctrl+click: toggle selection
+                    if (_selectedIndices.Contains(index))
+                        _selectedIndices.Remove(index);
+                    else
+                        _selectedIndices.Add(index);
 
+                    _selectedIndex = index;
+                }
+                else
+                {
+                    // Normal click: single selection
+                    _selectedIndices.Clear();
+                    _selectedIndices.Add(index);
+                    _selectedIndex = index;
+                }
+
+                var item = _items[index];
                 if (!item.IsCloud && !item.IsFolder && item.Asset != null)
                     EditorUtility.InspectorObject = item.Asset;
 
+                Update();
+            }
+            else
+            {
+                // Click on empty space: clear selection
+                _selectedIndices.Clear();
+                _selectedIndex = -1;
                 Update();
             }
         }
@@ -767,6 +794,26 @@ internal class IconGridCanvas : Widget
                 menu.AddOption("Open in Explorer", "folder_open", () => EditorUtility.OpenFolder(_currentFolder));
                 menu.AddOption("Refresh", "refresh", () => LoadFolder(_currentFolder));
             }
+            menu.OpenAtCursor();
+            e.Accepted = true;
+            return;
+        }
+
+        // If right-clicking on a selected item and multiple items are selected, show multi-select menu
+        if (_selectedIndices.Contains(index) && _selectedIndices.Count > 1)
+        {
+            var selectedAssets = _selectedIndices
+                .Where(i => i >= 0 && i < _items.Count)
+                .Select(i => _items[i])
+                .Where(i => !i.IsCloud && !i.IsFolder && i.Asset != null)
+                .Select(i => i.Asset)
+                .ToList();
+
+            if (selectedAssets.Count > 0)
+            {
+                AssetContextMenuHelper.AddMultiAssetTypeOptions(menu, selectedAssets);
+            }
+
             menu.OpenAtCursor();
             e.Accepted = true;
             return;

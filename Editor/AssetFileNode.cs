@@ -258,10 +258,18 @@ public class AssetFileNode : TreeNode
             if (newName == FileName)
                 return;
 
+            var oldCompiledPath = FullPath + "_c";
             var newPath = Path.Combine(Path.GetDirectoryName(FullPath), newName);
             try
             {
                 File.Move(FullPath, newPath);
+
+                // Delete old compiled _c file so it doesn't linger with the old name
+                if (File.Exists(oldCompiledPath))
+                {
+                    File.Delete(oldCompiledPath);
+                }
+
                 Parent?.Dirty();
             }
             catch (Exception ex)
@@ -337,6 +345,7 @@ public class AssetFileNode : TreeNode
         if (newName == FileName)
             return;
 
+        var oldCompiledPath = FullPath + "_c";
         var newPath = Path.Combine(Path.GetDirectoryName(FullPath), newName);
 
         try
@@ -349,6 +358,13 @@ public class AssetFileNode : TreeNode
             {
                 File.Move(FullPath, newPath);
             }
+
+            // Delete old compiled _c file so it doesn't linger with the old name
+            if (File.Exists(oldCompiledPath))
+            {
+                File.Delete(oldCompiledPath);
+            }
+
             Parent?.Dirty();
         }
         catch (Exception ex)

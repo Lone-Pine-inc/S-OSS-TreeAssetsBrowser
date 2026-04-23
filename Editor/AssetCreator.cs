@@ -45,13 +45,16 @@ public static class AssetCreator
 
         parent.AddOption("Folder", "folder", () =>
         {
-            var newFolderPath = Path.Combine(folderPath, "New Folder");
-            var counter = 1;
-            while (Directory.Exists(newFolderPath))
+            ShowNameDialog("New Folder", "New Folder", (name) =>
             {
-                newFolderPath = Path.Combine(folderPath, $"New Folder ({counter++})");
-            }
-            Directory.CreateDirectory(newFolderPath);
+                var newFolderPath = Path.Combine(folderPath, name);
+                if (Directory.Exists(newFolderPath))
+                {
+                    Log.Warning($"Folder already exists: {newFolderPath}");
+                    return;
+                }
+                Directory.CreateDirectory(newFolderPath);
+            });
         });
 
         parent.AddSeparator();
@@ -157,29 +160,74 @@ public static class AssetCreator
     private static void CreateFromTemplate(string name, string defaultFile, DirectoryInfo folder)
     {
         var extension = Path.GetExtension(defaultFile);
+        var defaultName = $"new {name.ToLower()}";
 
-        var sourceFile = global::Editor.FileSystem.Root.GetFullPath($"/templates/{defaultFile}");
-        if (!File.Exists(sourceFile))
+        ShowNameDialog($"Create {name}", defaultName, (chosenName) =>
         {
-            Log.Error($"Can't create asset! Missing template: {defaultFile}");
-            return;
-        }
+            var sourceFile = global::Editor.FileSystem.Root.GetFullPath($"/templates/{defaultFile}");
+            if (!File.Exists(sourceFile))
+            {
+                Log.Error($"Can't create asset! Missing template: {defaultFile}");
+                return;
+            }
 
-        string destName = GetNewFilename(folder, name, extension);
-        string destPath = Path.Combine(folder.FullName, destName);
-        File.Copy(sourceFile, destPath);
+            // Ensure correct extension
+            if (!chosenName.EndsWith(extension, StringComparison.OrdinalIgnoreCase))
+            {
+                chosenName += extension;
+            }
 
-        AssetSystem.RegisterFile(destPath);
+            string destPath = Path.Combine(folder.FullName, chosenName);
+            if (File.Exists(destPath))
+            {
+                Log.Warning($"File already exists: {destPath}");
+                return;
+            }
+
+            File.Copy(sourceFile, destPath);
+            AssetSystem.RegisterFile(destPath);
+        });
     }
 
     public static void CreateGameResource(AssetTypeAttribute gameResource, DirectoryInfo folder)
     {
         int slash = gameResource.Name.LastIndexOf('/');
         string name = slash == -1 ? gameResource.Name : gameResource.Name.Substring(slash + 1, gameResource.Name.Length - slash - 1);
+        var extension = $".{gameResource.Extension}";
+        var defaultName = $"new {name.ToLower()}";
 
-        string destName = GetNewFilename(folder, name, $".{gameResource.Extension}");
-        string destPath = Path.Combine(folder.FullName, destName);
+        ShowNameDialog($"Create {name}", defaultName, (chosenName) =>
+        {
+            // Ensure correct extension
+            if (!chosenName.EndsWith(extension, StringComparison.OrdinalIgnoreCase))
+            {
+                chosenName += extension;
+            }
 
-        AssetSystem.CreateResource(gameResource.Extension, destPath);
+            string destPath = Path.Combine(folder.FullName, chosenName);
+            if (File.Exists(destPath))
+            {
+                Log.Warning($"File already exists: {destPath}");
+                return;
+            }
+
+            AssetSystem.CreateResource(gameResource.Extension, destPath);
+        });
+    }
+
+    /// <summary>
+    /// Show a dialog asking the user for a name before creating a file/folder.
+    /// </summary>
+    private static void ShowNameDialog(string title, string defaultName, Action<string> onCreate)
+    {
+        var dialog = new RenameDialog(title, defaultName);
+        dialog.OnConfirm = (name) =>
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                return;
+
+            onCreate(name);
+        };
+        dialog.Show();
     }
 }

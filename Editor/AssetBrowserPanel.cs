@@ -156,6 +156,15 @@ public class AssetBrowserPanel : Widget, IBrowserPanel
         else
         {
             _expandedPaths.Remove(fullPath);
+
+            // When a folder is collapsed, its children stop being painted,
+            // so their OnPaint never fires to report them as closed.
+            // Remove all descendant paths so they don't persist as "expanded".
+            var prefix1 = fullPath + Path.DirectorySeparatorChar;
+            var prefix2 = fullPath + "/";
+            _expandedPaths.RemoveWhere(p =>
+                p.StartsWith(prefix1, StringComparison.OrdinalIgnoreCase) ||
+                p.StartsWith(prefix2, StringComparison.OrdinalIgnoreCase));
         }
     }
 

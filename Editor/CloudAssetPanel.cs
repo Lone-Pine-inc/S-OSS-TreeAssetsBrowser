@@ -1,4 +1,5 @@
 using Editor;
+using Label = Editor.Label;
 using Sandbox;
 using System;
 using System.Collections.Generic;

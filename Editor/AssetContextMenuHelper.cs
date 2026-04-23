@@ -14,6 +14,21 @@ namespace GeneralGame.Editor;
 public static class AssetContextMenuHelper
 {
     /// <summary>
+    /// Add options for multiple selected assets (batch operations).
+    /// </summary>
+    public static void AddMultiAssetTypeOptions(Menu menu, List<Asset> assets)
+    {
+        if (assets == null || assets.Count == 0) return;
+
+        var imageAssets = assets.Where(a => a.AssetType == AssetType.ImageFile).ToList();
+
+        if (imageAssets.Count > 0)
+        {
+            menu.AddOption($"Create Materials ({imageAssets.Count})", "image", () => CreateMaterialsFromImages(imageAssets));
+        }
+    }
+
+    /// <summary>
     /// Add asset-type specific options like Create Material, Create Texture, etc.
     /// </summary>
     public static void AddAssetTypeOptions(Menu menu, Asset asset)
@@ -192,6 +207,93 @@ Layer0
         {
             await Task.Delay(10);
         }
+    }
+
+    /// <summary>
+    /// Batch create materials from multiple image assets.
+    /// Materials are created in the same directory as each image, auto-named based on the image name.
+    /// </summary>
+    private static void CreateMaterialsFromImages(List<Asset> assets)
+    {
+        int created = 0;
+
+        foreach (var asset in assets)
+        {
+            string[] types = new[] { "color", "ao", "normal", "metallic", "rough", "diff", "diffuse", "nrm", "spec", "selfillum", "mask" };
+
+            var assetName = asset.Name;
+
+            foreach (var t in types)
+            {
+                if (assetName.EndsWith($"_{t}"))
+                    assetName = assetName.Substring(0, assetName.Length - (t.Length + 1));
+            }
+
+            var directory = Path.GetDirectoryName(asset.AbsolutePath);
+            var destPath = Path.Combine(directory, $"{assetName}.vmat");
+
+            // Skip if material already exists
+            if (File.Exists(destPath))
+                continue;
+
+            var assetPath = directory.NormalizeFilename(false);
+            var assetPeers = AssetSystem.All
+                .Where(x => x.AssetType == AssetType.ImageFile)
+                .Where(x => x.AbsolutePath.StartsWith(assetPath))
+                .ToArray();
+
+            var assetPeersWithSameBaseName = assetPeers
+                .Where(x => x.Name == assetName || x.Name.StartsWith(assetName + "_"))
+                .ToArray();
+
+            if (assetPeersWithSameBaseName.Length > 0)
+            {
+                assetPeers = assetPeersWithSameBaseName;
+            }
+
+            string texColor = assetPeers.Where(x => x.Name.Contains("_color") || x.Name.Contains("_diff")).Select(x => x.RelativePath).FirstOrDefault();
+            texColor ??= asset.RelativePath;
+
+            string texNormal = assetPeers.Where(x => x.Name.Contains("_nrm") || x.Name.Contains("_normal") || x.Name.Contains("_amb")).Select(x => x.RelativePath).FirstOrDefault() ?? "materials/default/default_normal.tga";
+            string texAo = assetPeers.Where(x => x.Name.Contains("_ao") || x.Name.Contains("_occ") || x.Name.Contains("_amb")).Select(x => x.RelativePath).FirstOrDefault() ?? "materials/default/default_ao.tga";
+            string texRough = assetPeers.Where(x => x.Name.Contains("_rough")).Select(x => x.RelativePath).FirstOrDefault() ?? "materials/default/default_rough.tga";
+
+            string texMetallic = assetPeers.Where(x => x.Name.Contains("_metallic")).Select(x => x.RelativePath).FirstOrDefault();
+            if (texMetallic != null)
+            {
+                texMetallic = $"\n\tF_METALNESS_TEXTURE 1\n\tF_SPECULAR 1\n\tTextureMetalness \"{texMetallic}\"";
+            }
+
+            string texSelfIllum = assetPeers.Where(x => x.Name.Contains("_selfillum")).Select(x => x.RelativePath).FirstOrDefault();
+            if (texSelfIllum != null)
+            {
+                texSelfIllum = $"\n\tF_SELF_ILLUM 1\n\tTextureSelfIllumMask \"{texSelfIllum}\"";
+            }
+
+            string tintMask = assetPeers.Where(x => x.Name.Contains("_mask")).Select(x => x.RelativePath).FirstOrDefault();
+            if (tintMask != null)
+            {
+                tintMask = $"\n\tF_TINT_MASK 1\n\tTextureTintMask \"{tintMask}\"";
+            }
+
+            var file = $@"
+Layer0
+{{
+	shader ""shaders/complex.shader_c""
+
+	TextureColor ""{texColor}""
+	TextureAmbientOcclusion ""{texAo}""
+	TextureNormal ""{texNormal}""
+	TextureRoughness ""{texRough}""{texMetallic}{texSelfIllum}{tintMask}
+
+}}
+";
+            File.WriteAllText(destPath, file);
+            AssetSystem.RegisterFile(destPath);
+            created++;
+        }
+
+        Log.Info($"Created {created} material(s)");
     }
 
     private static void CreateMaterialFromShader(Asset asset)
