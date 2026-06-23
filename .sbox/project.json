@@ -10,23 +10,23 @@
     "DeleteAt": 0
   },
   "Window.SboxSceneEditor.Dock": {
-    "Value": "{\u0022floatingWindows\u0022:[],\u0022mainWrapper\u0022:{\u0022geometry\u0022:\u0022AdnQywADAAAAAAAAAAAAAAAAB3cAAAQ7AAAAAAAAAAAAAAd3AAAEOwAAAAAAAAAAB4AAAAAAAAAAAAAAB3cAAAQ7\u0022,\u0022splitter\u0022:{\u0022items\u0022:[{\u0022currentIndex\u0022:0,\u0022objects\u0022:[{\u0022data\u0022:null,\u0022managedType\u0022:\u0022Inspector\u0022,\u0022name\u0022:\u0022Inspector\u0022}],\u0022type\u0022:\u0022area\u0022},{\u0022items\u0022:[{\u0022items\u0022:[{\u0022currentIndex\u0022:0,\u0022objects\u0022:[{\u0022data\u0022:null,\u0022managedType\u0022:\u0022SceneTreeWidget\u0022,\u0022name\u0022:\u0022Hierarchy\u0022},{\u0022data\u0022:null,\u0022managedType\u0022:\u0022PanelInspectorWidget\u0022,\u0022name\u0022:\u0022UI Panels\u0022}],\u0022type\u0022:\u0022area\u0022},{\u0022currentIndex\u0022:0,\u0022objects\u0022:[{\u0022data\u0022:null,\u0022managedType\u0022:\u0022SceneDock\u0022,\u0022name\u0022:\u0022SceneDock:new scene.scene\u0022}],\u0022type\u0022:\u0022area\u0022}],\u0022state\u0022:\u0022AAAA/wAAAAEAAAACAAAA3AAAA/sA/////wEAAAABAA==\u0022,\u0022type\u0022:\u0022splitter\u0022},{\u0022currentIndex\u0022:0,\u0022objects\u0022:[{\u0022data\u0022:null,\u0022managedType\u0022:\u0022ConsoleWidget\u0022,\u0022name\u0022:\u0022Console\u0022},{\u0022data\u0022:null,\u0022managedType\u0022:\u0022MixerDock\u0022,\u0022name\u0022:\u0022Mixer\u0022},{\u0022data\u0022:null,\u0022managedType\u0022:\u0022LibraryManagerDock\u0022,\u0022name\u0022:\u0022Library Manager\u0022}],\u0022type\u0022:\u0022area\u0022}],\u0022state\u0022:\u0022AAAA/wAAAAEAAAACAAADLQAAAdoA/////wEAAAACAA==\u0022,\u0022type\u0022:\u0022splitter\u0022}],\u0022state\u0022:\u0022AAAA/wAAAAEAAAACAAABiwAABeQA/////wEAAAABAA==\u0022,\u0022type\u0022:\u0022splitter\u0022}},\u0022toolWindowManagerStateFormat\u0022:1}",
-    "Timeout": 1784811481,
+    "Value": "{\u0022floatingWindows\u0022:[],\u0022mainWrapper\u0022:{\u0022geometry\u0022:\u0022AdnQywADAAAAAAAAAAAAAAAAB3cAAAQ7AAAAAAAAAAAAAAd3AAAEOwAAAAAAAAAAB4AAAAAAAAAAAAAAB3cAAAQ7\u0022,\u0022splitter\u0022:{\u0022items\u0022:[{\u0022currentIndex\u0022:0,\u0022objects\u0022:[{\u0022data\u0022:null,\u0022managedType\u0022:\u0022Inspector\u0022,\u0022name\u0022:\u0022Inspector\u0022}],\u0022type\u0022:\u0022area\u0022},{\u0022items\u0022:[{\u0022items\u0022:[{\u0022currentIndex\u0022:0,\u0022objects\u0022:[{\u0022data\u0022:null,\u0022managedType\u0022:\u0022SceneTreeWidget\u0022,\u0022name\u0022:\u0022Hierarchy\u0022},{\u0022data\u0022:null,\u0022managedType\u0022:\u0022PanelInspectorWidget\u0022,\u0022name\u0022:\u0022UI Panels\u0022}],\u0022type\u0022:\u0022area\u0022},{\u0022currentIndex\u0022:0,\u0022objects\u0022:[{\u0022data\u0022:null,\u0022managedType\u0022:\u0022SceneDock\u0022,\u0022name\u0022:\u0022SceneDock:new scene.scene\u0022}],\u0022type\u0022:\u0022area\u0022}],\u0022state\u0022:\u0022AAAA/wAAAAEAAAACAAAA3AAAA/sA/////wEAAAABAA==\u0022,\u0022type\u0022:\u0022splitter\u0022},{\u0022currentIndex\u0022:3,\u0022objects\u0022:[{\u0022data\u0022:null,\u0022managedType\u0022:\u0022ConsoleWidget\u0022,\u0022name\u0022:\u0022Console\u0022},{\u0022data\u0022:null,\u0022managedType\u0022:\u0022MixerDock\u0022,\u0022name\u0022:\u0022Mixer\u0022},{\u0022data\u0022:null,\u0022managedType\u0022:\u0022LibraryManagerDock\u0022,\u0022name\u0022:\u0022Library Manager\u0022},{\u0022data\u0022:null,\u0022managedType\u0022:\u0022TreeAssetBrowser\u0022,\u0022name\u0022:\u0022Tree Asset Browser\u0022}],\u0022type\u0022:\u0022area\u0022}],\u0022state\u0022:\u0022AAAA/wAAAAEAAAACAAADLQAAAfAA/////wEAAAACAA==\u0022,\u0022type\u0022:\u0022splitter\u0022}],\u0022state\u0022:\u0022AAAA/wAAAAEAAAACAAABiwAABeQA/////wEAAAABAA==\u0022,\u0022type\u0022:\u0022splitter\u0022}},\u0022toolWindowManagerStateFormat\u0022:1}",
+    "Timeout": 1784812490,
     "DeleteAt": 0
   },
   "SceneView.Viewport0.Settings": {
-    "Value": "{\u0022CameraPosition\u0022:\u0022-155.97374,-67.8973083,102.033165\u0022,\u0022CameraRotation\u0022:\u0022-0.0321194306,0.178512767,0.174147025,0.96787107\u0022,\u0022View\u0022:0,\u0022RenderMode\u0022:0,\u0022WireframeMode\u0022:false,\u0022EnablePostProcessing\u0022:true,\u0022EnablePrefabLighting\u0022:true,\u0022ShowSkyIn2D\u0022:true,\u0022ShowGrid\u0022:true,\u0022GridOpacity\u0022:0.2,\u0022GridAxis\u0022:0,\u0022CameraOrthoHeight\u0022:1000}",
-    "Timeout": 1784811528,
+    "Value": "{\u0022CameraPosition\u0022:\u0022-131.89212,-108.34137,167.11969\u0022,\u0022CameraRotation\u0022:\u0022-0.0948515683,0.304531991,0.281843394,0.904891014\u0022,\u0022View\u0022:0,\u0022RenderMode\u0022:0,\u0022WireframeMode\u0022:false,\u0022EnablePostProcessing\u0022:true,\u0022EnablePrefabLighting\u0022:true,\u0022ShowSkyIn2D\u0022:true,\u0022ShowGrid\u0022:true,\u0022GridOpacity\u0022:0.2,\u0022GridAxis\u0022:0,\u0022CameraOrthoHeight\u0022:1000}",
+    "Timeout": 1784812833,
     "DeleteAt": 0
   },
   "gizmo.settings": {
     "Value": "{\u0022EditMode\u0022:\u0022position\u0022,\u0022Selection\u0022:true,\u0022ViewMode\u0022:\u00223d\u0022,\u0022GizmosEnabled\u0022:true,\u0022GizmoScale\u0022:1,\u0022WorldSpaceGizmos\u0022:false,\u0022GizmoDepthTest\u0022:false,\u0022GizmoRenderDistance\u0022:0,\u0022GridSpacing\u0022:32,\u0022SnapToGrid\u0022:false,\u0022SnapToAngles\u0022:true,\u0022AngleSpacing\u0022:15,\u0022GlobalSpace\u0022:true,\u0022DebugActionGraphs\u0022:false,\u0022DisabledGizmos\u0022:{}}",
-    "Timeout": 1784809621,
+    "Timeout": 1784812486,
     "DeleteAt": 0
   },
   "SceneView.Layout": {
     "Value": "{\u0022Layout\u0022:0,\u0022SplitterState\u0022:[]}",
-    "Timeout": 1784809621,
+    "Timeout": 1784812487,
     "DeleteAt": 0
   },
   "CloudBrowser..ViewMode": {
@@ -85,18 +85,18 @@
     "DeleteAt": 0
   },
   "TreeAssetBrowser.Browser_0.State": {
-    "Value": "{\u0022IsTabMode\u0022:false,\u0022ActiveTabIndex\u0022:1,\u0022PanelTypes\u0022:[\u0022Tree\u0022,\u0022IconGrid\u0022]}",
-    "Timeout": 1784811484,
+    "Value": "{\u0022IsTabMode\u0022:false,\u0022ActiveTabIndex\u0022:1,\u0022PanelTypes\u0022:[\u0022Tree\u0022,\u0022IconGrid\u0022],\u0022PanelWidths\u0022:[307,1195]}",
+    "Timeout": 1784812487,
     "DeleteAt": 0
   },
   "TreeAssetBrowser.AllInstanceIds": {
     "Value": "[\u0022Browser_0\u0022]",
-    "Timeout": 1784811484,
+    "Timeout": 1784812487,
     "DeleteAt": 0
   },
   "new scene.scene.Viewport0": {
-    "Value": "{\u0022CameraPosition\u0022:\u0022-155.97374,-67.8973083,102.033165\u0022,\u0022CameraRotation\u0022:\u0022-0.0321194306,0.178512767,0.174147025,0.96787107\u0022,\u0022CameraOrthoHeight\u0022:1000}",
-    "Timeout": 1784811528,
+    "Value": "{\u0022CameraPosition\u0022:\u0022-131.89212,-108.34137,167.11969\u0022,\u0022CameraRotation\u0022:\u0022-0.0948515683,0.304531991,0.281843394,0.904891014\u0022,\u0022CameraOrthoHeight\u0022:1000}",
+    "Timeout": 1784812833,
     "DeleteAt": 0
   },
   "TreeAssetBrowser.Browser_0_Panel2.ExpandedPaths": {
@@ -105,18 +105,18 @@
     "DeleteAt": 0
   },
   "TreeAssetBrowser.Browser_0_Panel0.ExpandedPaths": {
-    "Value": "[\u0022__header__s\\u0026box\u0022,\u0022C:\\\\Users\\\\Lecoo\\\\Documents\\\\GitHub\\\\S-TreeAssetsBrowser\\\\Assets\u0022,\u0022C:\\\\Users\\\\Lecoo\\\\Documents\\\\GitHub\\\\S-TreeAssetsBrowser\\\\Assets\\\\Materials\u0022,\u0022C:\\\\Users\\\\Lecoo\\\\Documents\\\\GitHub\\\\S-TreeAssetsBrowser\\\\Assets\\\\Materials\\\\default\u0022]",
-    "Timeout": 1784811510,
+    "Value": "[\u0022__header__s\\u0026box\u0022,\u0022C:\\\\Users\\\\Lecoo\\\\Documents\\\\GitHub\\\\S-TreeAssetsBrowser\\\\Assets\u0022,\u0022C:\\\\Users\\\\Lecoo\\\\Documents\\\\GitHub\\\\S-TreeAssetsBrowser\\\\Assets\\\\Materials\u0022,\u0022C:\\\\Users\\\\Lecoo\\\\Documents\\\\GitHub\\\\S-TreeAssetsBrowser\\\\Assets\\\\Materials\\\\test\u0022]",
+    "Timeout": 1784812487,
     "DeleteAt": 0
   },
   "TreeAssetBrowser.Settings.ShowTreeIcons": {
     "Value": "true",
-    "Timeout": 1784810774,
+    "Timeout": 1784812488,
     "DeleteAt": 0
   },
   "TreeAssetBrowser.Settings.BackwardCompatibility": {
     "Value": "true",
-    "Timeout": 1784811495,
+    "Timeout": 1784812504,
     "DeleteAt": 0
   }
 }

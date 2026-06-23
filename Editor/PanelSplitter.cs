@@ -12,6 +12,9 @@ public class PanelSplitter : Widget
     private readonly Widget _left;
     private readonly Widget _right;
 
+    // Called when a drag finishes, so the owner can persist the new sizing
+    public Action OnResized;
+
     private bool _isDragging;
     private bool _isHovered;
     private float _dragStartScreenX;
@@ -87,7 +90,13 @@ public class PanelSplitter : Widget
     protected override void OnMouseReleased(MouseEvent e)
     {
         base.OnMouseReleased(e);
-        _isDragging = false;
+
+        if (_isDragging)
+        {
+            _isDragging = false;
+            OnResized?.Invoke();
+        }
+
         Update();
     }
 }

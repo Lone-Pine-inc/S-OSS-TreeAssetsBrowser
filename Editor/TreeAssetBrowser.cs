@@ -62,8 +62,9 @@ public class TreeAssetBrowser : Widget
 
     public override void OnDestroyed()
     {
-        base.OnDestroyed();
+        // Save before base destroys the child panels, otherwise their widths read as 0
         SaveBrowserState();
+        base.OnDestroyed();
         _usedInstanceIds.Remove(_instanceId);
     }
 
@@ -152,7 +153,8 @@ public class TreeAssetBrowser : Widget
         {
             IsTabMode = _isTabMode,
             ActiveTabIndex = _activeTabIndex,
-            PanelTypes = _panels.Select(GetPanelTypeName).ToList()
+            PanelTypes = _panels.Select(GetPanelTypeName).ToList(),
+            PanelWidths = _panels.Select(p => p.Width).ToList()
         };
 
         ProjectCookie.Set(BrowserStateCookieKey, state);
@@ -202,8 +204,29 @@ public class TreeAssetBrowser : Widget
         {
             SwitchToTabMode();
         }
+        else
+        {
+            // Restore manual splitter sizing (only meaningful in side-by-side mode)
+            RestorePanelWidths(state.PanelWidths);
+        }
 
         return _panels.Count > 0;
+    }
+
+    /// <summary>
+    /// Reapply saved panel widths. Every panel except the last is pinned; the last one stays
+    /// flexible and fills the remaining space, mirroring how the splitters set sizes.
+    /// </summary>
+    private void RestorePanelWidths(List<float> widths)
+    {
+        if (widths == null || widths.Count != _panels.Count)
+            return;
+
+        for (int i = 0; i < _panels.Count - 1; i++)
+        {
+            if (widths[i] > 0)
+                _panels[i].FixedWidth = widths[i];
+        }
     }
 
     /// <summary>
@@ -366,6 +389,7 @@ public class TreeAssetBrowser : Widget
         {
             var left = _panels[_panels.Count - 1];
             var splitter = new PanelSplitter(_panelsContainer, left, panel);
+            splitter.OnResized = SaveBrowserState;
             _panelsContainer.Layout.Add(splitter);
             _splitters.Add(splitter);
         }
@@ -536,6 +560,7 @@ public class TreeAssetBrowser : Widget
             if (i > 0)
             {
                 var splitter = new PanelSplitter(_panelsContainer, _panels[i - 1], _panels[i]);
+                splitter.OnResized = SaveBrowserState;
                 _panelsContainer.Layout.Add(splitter);
                 _splitters.Add(splitter);
             }
@@ -766,6 +791,9 @@ internal class BrowserState
     public bool IsTabMode { get; set; }
     public int ActiveTabIndex { get; set; }
     public List<string> PanelTypes { get; set; } = new();
+
+    // Side-by-side panel widths (one per panel); used to restore manual splitter sizing
+    public List<float> PanelWidths { get; set; } = new();
 }
 
 /// <summary>
