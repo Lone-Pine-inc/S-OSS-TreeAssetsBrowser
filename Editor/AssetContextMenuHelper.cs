@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace GeneralGame.Editor;
@@ -301,6 +302,159 @@ public static class AssetContextMenuHelper
         {
             return false;
         }
+    }
+
+    // ===== Backward compatibility: move an asset and optionally fix references to its old path =====
+
+    private static readonly HashSet<string> NonTextExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".png", ".jpg", ".jpeg", ".tga", ".psd", ".bmp", ".gif", ".dds", ".hdr",
+        ".fbx", ".obj", ".gltf", ".glb", ".dmx", ".blend",
+        ".wav", ".mp3", ".ogg", ".flac",
+        ".vtex", ".vsnd", ".vmdl", ".dll", ".pdb", ".exe", ".zip", ".bin"
+    };
+
+    // True if this is a single registered asset being moved inside the project - the case the
+    // backward-compatibility reference check applies to.
+    public static bool IsBackwardCompatMove(IReadOnlyList<string> files, bool isCopy)
+    {
+        if (!BrowserSettings.BackwardCompatibility) return false;
+        if (isCopy) return false;
+        if (files == null || files.Count != 1) return false;
+
+        var file = files[0];
+        if (string.IsNullOrEmpty(file) || IsExternalSource(file) || Directory.Exists(file)) return false;
+        if (!File.Exists(file)) return false;
+
+        var asset = AssetSystem.FindByPath(file);
+        return asset != null && !asset.IsDeleted;
+    }
+
+    // Moves an asset, first asking (via a modal) whether to update references to its old path.
+    public static void MoveAssetWithReferenceCheck(string sourceFile, string targetFolder, Action onComplete)
+    {
+        var asset = AssetSystem.FindByPath(sourceFile);
+        if (asset == null || asset.IsDeleted)
+            return;
+
+        // Don't bother if it's already in the target folder
+        if (string.Equals(Path.GetFullPath(Path.GetDirectoryName(sourceFile)), Path.GetFullPath(targetFolder), StringComparison.OrdinalIgnoreCase))
+            return;
+
+        var assetsRoot = Project.Current?.GetAssetsPath();
+        var oldRef = asset.RelativePath?.Replace('\\', '/');
+        var newAbs = Path.Combine(targetFolder, Path.GetFileName(sourceFile));
+        var newRef = string.IsNullOrEmpty(assetsRoot)
+            ? null
+            : Path.GetRelativePath(assetsRoot, newAbs).Replace('\\', '/');
+
+        void JustMove()
+        {
+            EditorUtility.MoveAssetToDirectory(asset, targetFolder);
+            onComplete?.Invoke();
+        }
+
+        // Can't compute a clean reference (asset outside the assets mount) - just move normally
+        if (string.IsNullOrEmpty(oldRef) || string.IsNullOrEmpty(newRef) || newRef.StartsWith(".."))
+        {
+            JustMove();
+            return;
+        }
+
+        var affected = FindFilesReferencing(oldRef);
+        affected.RemoveAll(f => string.Equals(Path.GetFullPath(f), Path.GetFullPath(asset.AbsolutePath), StringComparison.OrdinalIgnoreCase));
+
+        var dialog = new MoveReferencesDialog(oldRef, newRef, affected,
+            onJustMove: JustMove,
+            onMoveAndUpdate: () =>
+            {
+                EditorUtility.MoveAssetToDirectory(asset, targetFolder);
+                RewriteReferences(affected, oldRef, newRef);
+                onComplete?.Invoke();
+            });
+        dialog.Show();
+    }
+
+    // Matches the reference only at a path boundary, so "models/foo.vmdl" doesn't match inside
+    // "othermodels/foo.vmdl" or "sub/models/foo.vmdl". A trailing "_c" (compiled form) is still matched.
+    private static Regex BuildReferenceRegex(string reference)
+    {
+        return new Regex(@"(?<![\w./\\-])" + Regex.Escape(reference), RegexOptions.IgnoreCase);
+    }
+
+    // Finds every text-based project file that mentions the given reference path.
+    public static List<string> FindFilesReferencing(string reference)
+    {
+        var results = new List<string>();
+        if (string.IsNullOrEmpty(reference))
+            return results;
+
+        var root = Project.Current?.GetAssetsPath();
+        if (string.IsNullOrEmpty(root) || !Directory.Exists(root))
+            return results;
+
+        var regex = BuildReferenceRegex(reference);
+
+        foreach (var file in Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories))
+        {
+            if (!IsScannableTextFile(file))
+                continue;
+
+            try
+            {
+                var info = new FileInfo(file);
+                if (info.Length == 0 || info.Length > 16_000_000)
+                    continue;
+
+                var text = File.ReadAllText(file);
+                if (regex.IsMatch(text))
+                    results.Add(file);
+            }
+            catch
+            {
+                // Ignore unreadable files
+            }
+        }
+
+        return results;
+    }
+
+    // Rewrites the old reference to the new one in each file (covers compiled "_c" forms too, since
+    // they share the prefix). Re-registers the file afterwards.
+    public static void RewriteReferences(IEnumerable<string> files, string oldRef, string newRef)
+    {
+        var regex = BuildReferenceRegex(oldRef);
+
+        foreach (var file in files)
+        {
+            try
+            {
+                var text = File.ReadAllText(file);
+                var updated = regex.Replace(text, _ => newRef);
+
+                if (updated != text)
+                {
+                    File.WriteAllText(file, updated);
+                    AssetSystem.RegisterFile(file);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"Failed to update references in '{file}': {ex.Message}");
+            }
+        }
+    }
+
+    private static bool IsScannableTextFile(string file)
+    {
+        if (!ShouldRegister(file))
+            return false;
+
+        var ext = Path.GetExtension(file);
+        if (NonTextExtensions.Contains(ext))
+            return false;
+
+        return true;
     }
 
     private static bool ShouldRegister(string file)

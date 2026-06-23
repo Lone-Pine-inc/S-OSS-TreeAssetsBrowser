@@ -756,6 +756,14 @@ internal class IconGridCanvas : Widget
         bool isCopy = DragEffectFor(ev) == DropAction.Copy;
         ev.Action = isCopy ? DropAction.Copy : DropAction.Move;
 
+        // Backward compatibility: moving a single asset opens a modal to update references to its old path
+        var droppedFiles = ev.Data.Files.Where(f => !string.IsNullOrEmpty(f)).ToList();
+        if (AssetContextMenuHelper.IsBackwardCompatMove(droppedFiles, isCopy))
+        {
+            AssetContextMenuHelper.MoveAssetWithReferenceCheck(droppedFiles[0], targetFolder, () => LoadFolder(_currentFolder));
+            return;
+        }
+
         foreach (var file in ev.Data.Files)
         {
             if (string.IsNullOrEmpty(file))

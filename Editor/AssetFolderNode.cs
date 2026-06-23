@@ -300,6 +300,14 @@ public class AssetFolderNode : TreeNode
         if (!e.IsDrop)
             return dropAction;
 
+        // Backward compatibility: moving a single asset opens a modal to update references to its old path
+        var droppedFiles = e.Data.Files.Where(f => !string.IsNullOrEmpty(f)).ToList();
+        if (AssetContextMenuHelper.IsBackwardCompatMove(droppedFiles, dropAction == DropAction.Copy))
+        {
+            AssetContextMenuHelper.MoveAssetWithReferenceCheck(droppedFiles[0], FullPath, () => Dirty());
+            return dropAction;
+        }
+
         // Check if any directories are being moved (not copied)
         var foldersToMove = new List<string>();
         var filesToProcess = new List<string>();

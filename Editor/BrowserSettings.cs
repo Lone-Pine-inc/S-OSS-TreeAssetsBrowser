@@ -71,13 +71,10 @@ internal class BrowserSettingsPopup : PopupWidget
         iconsCheck.Value = BrowserSettings.ShowTreeIcons;
         iconsCheck.StateChanged = (_) => BrowserSettings.ShowTreeIcons = iconsCheck.Value;
 
-        // Danger action - functionality to be implemented later
-        var backwardCompatBtn = Layout.Add(new Button.Danger("Backward Compatibility", "history", this));
-        backwardCompatBtn.Clicked = OnBackwardCompatibilityClicked;
-    }
-
-    private void OnBackwardCompatibilityClicked()
-    {
-        // TODO: implement backward compatibility action
+        // When moving a single asset, offer to scan the project and fix references to its old path
+        var backwardCompatCheck = Layout.Add(new Checkbox("Backward Compatibility", this));
+        backwardCompatCheck.ToolTip = "When moving a single asset, ask whether to update references to it in scenes, resources and materials.";
+        backwardCompatCheck.Value = BrowserSettings.BackwardCompatibility;
+        backwardCompatCheck.StateChanged = (_) => BrowserSettings.BackwardCompatibility = backwardCompatCheck.Value;
     }
 }

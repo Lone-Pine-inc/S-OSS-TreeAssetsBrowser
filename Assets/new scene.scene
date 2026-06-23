@@ -6,7 +6,7 @@
       "__version": 2,
       "Flags": 0,
       "Name": "Plane",
-      "Position": "106.6155,131.1916,-247.8225",
+      "Position": "106.615501,131.191605,-247.822495",
       "Rotation": "0,0,0,1",
       "Scale": "1,1,1",
       "Tags": "",
@@ -46,6 +46,52 @@
         }
       ],
       "Children": []
+    },
+    {
+      "__guid": "d15748c7-e9f3-4fcc-8b6e-eaa4dda53f73",
+      "__version": 2,
+      "Flags": 0,
+      "Name": "new model",
+      "Position": "4.38757324,-5.35198975,4.99993896",
+      "Rotation": "0,0,0,1",
+      "Scale": "1,1,1",
+      "Tags": "",
+      "Enabled": true,
+      "NetworkMode": 2,
+      "NetworkFlags": 0,
+      "NetworkOrphaned": 0,
+      "NetworkTransmit": true,
+      "OwnerTransfer": 1,
+      "Components": [
+        {
+          "__type": "Sandbox.ModelRenderer",
+          "__guid": "907c3a52-8f01-434b-8db3-afc0aed024e2",
+          "__enabled": true,
+          "Flags": 0,
+          "BodyGroups": 18446744073709551615,
+          "CreateAttachments": false,
+          "LodOverride": null,
+          "MaterialGroup": null,
+          "MaterialOverride": null,
+          "Materials": null,
+          "Model": "materials/test/new model.vmdl",
+          "OnComponentDestroy": null,
+          "OnComponentDisabled": null,
+          "OnComponentEnabled": null,
+          "OnComponentFixedUpdate": null,
+          "OnComponentStart": null,
+          "OnComponentUpdate": null,
+          "RenderOptions": {
+            "GameLayer": true,
+            "OverlayLayer": false,
+            "BloomLayer": false,
+            "AfterUILayer": false
+          },
+          "RenderType": "On",
+          "Tint": "1,1,1,1"
+        }
+      ],
+      "Children": []
     }
   ],
   "SceneProperties": {
@@ -63,9 +109,22 @@
       "AgentStepSize": 18,
       "AgentMaxSlope": 40,
       "ExcludedBodies": "",
-      "IncludedBodies": ""
+      "IncludedBodies": "",
+      "DeferGeneration": false,
+      "CustomBounds": false
     },
-    "GameObjectSystems": []
+    "GameObjectSystems": {
+      "Sandbox.Clutter.ClutterGridSystem": {
+        "Storage": {
+          "$blob": "653685e7-5a08-4e64-8e0b-5497c8e9f948"
+        }
+      },
+      "Sandbox.SelectionSetsSystem": {
+        "Data": {
+          "SelectionSets": []
+        }
+      }
+    }
   },
   "ResourceVersion": 3,
   "Title": null,
