@@ -1,0 +1,10 @@
+{
+  "Volume": "1",
+  "Pitch": "1",
+  "SelectionMode": "Random",
+  "Sounds": [
+    "materials/notification — копия.vsnd",
+    "materials/click — копия_copy.vsnd"
+  ],
+  "__version": 1
+}

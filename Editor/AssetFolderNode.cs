@@ -220,74 +220,19 @@ public class AssetFolderNode : TreeNode
     {
         var menu = new ContextMenu(null);
 
-        menu.AddOption("Open in Explorer", "folder_open", () =>
-        {
-            EditorUtility.OpenFolder(FullPath);
-        });
-
-        menu.AddSeparator();
-
-        // Create submenu
-        var createMenu = menu.AddMenu("Create", "add");
-        AssetCreator.AddOptions(createMenu, FullPath);
-        menu.AddSeparator();
-
-        if (!_isRoot)
-        {
-            menu.AddOption("Rename", "edit", () =>
+        AssetContextMenuHelper.BuildFolderMenu(
+            menu,
+            FullPath,
+            DisplayName,
+            _isRoot,
+            onOpen: () =>
             {
-                ShowRenameDialog();
-            });
-        }
-
-        menu.AddOption("Copy Path", "content_copy", () =>
-        {
-            EditorUtility.Clipboard.Copy(FullPath);
-        });
-
-        menu.AddOption("Copy Relative Path", "content_copy", () =>
-        {
-            var relativePath = Path.GetRelativePath(Project.Current?.GetRootPath() ?? "", FullPath);
-            EditorUtility.Clipboard.Copy(relativePath);
-        });
-
-        menu.AddSeparator();
-
-        menu.AddOption("Refresh", "refresh", () =>
-        {
-            Dirty();
-        });
-
-        if (!_isRoot)
-        {
-            menu.AddSeparator();
-
-            menu.AddOption("Delete", "delete", () =>
-            {
-                var confirm = new PopupWindow(
-                    "Delete Folder",
-                    $"Are you sure you want to delete '{DisplayName}'?\nAll contents will be deleted.",
-                    "Cancel",
-                    new Dictionary<string, Action>()
-                    {
-                        { "Delete", () =>
-                            {
-                                try
-                                {
-                                    Directory.Delete(FullPath, recursive: true);
-                                    Parent?.Dirty();
-                                }
-                                catch (Exception ex)
-                                {
-                                    Log.Error($"Failed to delete folder: {ex.Message}");
-                                }
-                            }
-                        }
-                    }
-                );
-                confirm.Show();
-            });
-        }
+                EnsureChildrenBuilt();
+                TreeView?.Open(this);
+            },
+            onRename: () => ShowRenameDialog(),
+            onRefresh: () => Dirty(),
+            onDeleted: () => Parent?.Dirty());
 
         menu.OpenAtCursor();
         return true;
@@ -347,7 +292,9 @@ public class AssetFolderNode : TreeNode
 
     public override DropAction OnDragDrop(BaseItemWidget.ItemDragEvent e)
     {
-        var dropAction = e.HasCtrl ? DropAction.Copy : DropAction.Move;
+        // Report Copy for external (Explorer) sources, otherwise Windows deletes the originals on a "move"
+        bool anyExternal = e.Data.Files.Any(f => AssetContextMenuHelper.IsExternalSource(f));
+        var dropAction = (e.HasCtrl || anyExternal) ? DropAction.Copy : DropAction.Move;
 
         // If not actually dropping, just return the action (for hover feedback)
         if (!e.IsDrop)
@@ -368,7 +315,8 @@ public class AssetFolderNode : TreeNode
             if (Path.GetFullPath(file).Equals(Path.GetFullPath(destPath), StringComparison.OrdinalIgnoreCase))
                 continue;
 
-            if (Directory.Exists(file) && dropAction == DropAction.Move)
+            // External folders (from Explorer) are copied via ProcessFiles; only internal folders get the move-with-confirmation flow
+            if (Directory.Exists(file) && dropAction == DropAction.Move && !AssetContextMenuHelper.IsExternalSource(file))
             {
                 foldersToMove.Add(file);
             }
@@ -435,6 +383,9 @@ public class AssetFolderNode : TreeNode
     {
         foreach (var file in files)
         {
+            // Files dragged in from outside the project must always be copied, never moved
+            var fileAction = AssetContextMenuHelper.IsExternalSource(file) ? DropAction.Copy : action;
+
             try
             {
                 var fileName = Path.GetFileName(file);
@@ -447,12 +398,15 @@ public class AssetFolderNode : TreeNode
                 if (Directory.Exists(file))
                 {
                     // It's a directory
-                    if (action == DropAction.Copy)
+                    if (fileAction == DropAction.Copy)
                         CopyDirectory(file, destPath);
                     else
                     {
                         EditorUtility.RenameDirectory(file, destPath);
                     }
+
+                    // Register the dropped files so they compile immediately
+                    AssetContextMenuHelper.RegisterNewPath(destPath);
                 }
                 else if (File.Exists(file))
                 {
@@ -462,24 +416,27 @@ public class AssetFolderNode : TreeNode
                     if (asset != null && !asset.IsDeleted)
                     {
                         // Use EditorUtility for proper asset handling
-                        if (action == DropAction.Copy)
+                        if (fileAction == DropAction.Copy)
                             EditorUtility.CopyAssetToDirectory(asset, FullPath);
                         else
                             EditorUtility.MoveAssetToDirectory(asset, FullPath);
                     }
                     else
                     {
-                        // Regular file, not an asset
-                        if (action == DropAction.Copy)
+                        // Regular file, not an asset yet
+                        if (fileAction == DropAction.Copy)
                             File.Copy(file, destPath);
                         else
                             File.Move(file, destPath);
+
+                        // Register it so it compiles immediately instead of appearing uncompiled
+                        AssetContextMenuHelper.RegisterNewPath(destPath);
                     }
                 }
             }
             catch (Exception ex)
             {
-                Log.Error($"Failed to {(action == DropAction.Copy ? "copy" : "move")}: {ex.Message}");
+                Log.Error($"Failed to {(fileAction == DropAction.Copy ? "copy" : "move")}: {ex.Message}");
             }
         }
     }

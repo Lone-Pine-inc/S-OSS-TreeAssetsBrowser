@@ -171,71 +171,22 @@ public class AssetFileNode : TreeNode
     {
         var menu = new ContextMenu(null);
 
-        // Open options
-        if (Asset != null)
+        // If several files are selected, show the batch menu (Create Material (N), Delete (N), ...)
+        var selectedFiles = TreeView?.SelectedItems?.OfType<AssetFileNode>().ToList() ?? new List<AssetFileNode>();
+        if (selectedFiles.Count > 1 && selectedFiles.Contains(this))
         {
-            menu.AddOption("Open in Editor", "edit", () => Asset.OpenInEditor());
+            var items = selectedFiles.Select(n => (n.FullPath, n.Asset)).ToList();
+            AssetContextMenuHelper.BuildMultiFileMenu(menu, items, () => Parent?.Dirty());
         }
         else
         {
-            menu.AddOption("Open", "open_in_new", () => EditorUtility.OpenFolder(FullPath));
+            AssetContextMenuHelper.BuildFileMenu(
+                menu,
+                FullPath,
+                Asset,
+                onRename: () => ShowRenameDialog(),
+                onChanged: () => Parent?.Dirty());
         }
-        menu.AddOption("Show in Explorer", "folder_open", () => EditorUtility.OpenFileFolder(FullPath));
-
-        menu.AddSeparator();
-
-        // Copy options
-        if (Asset != null)
-        {
-            menu.AddOption("Copy Relative Path", "content_paste_go", () => EditorUtility.Clipboard.Copy(Asset.RelativePath));
-        }
-        menu.AddOption("Copy Absolute Path", "content_paste", () => EditorUtility.Clipboard.Copy(FullPath));
-
-        // Asset-type specific options (Create Material, Create Texture, etc.)
-        AssetContextMenuHelper.AddAssetTypeOptions(menu, Asset);
-
-        menu.AddSeparator();
-
-        // Edit options
-        menu.AddOption("Rename", "edit", () => ShowRenameDialog());
-        menu.AddOption("Duplicate", "file_copy", () => DuplicateFile());
-
-        menu.AddSeparator();
-
-        // Create submenu for quick asset creation in same folder
-        var parentFolder = Path.GetDirectoryName(FullPath);
-        if (!string.IsNullOrEmpty(parentFolder))
-        {
-            var createMenu = menu.AddMenu("Create", "add");
-            AssetCreator.AddOptions(createMenu, parentFolder);
-            menu.AddSeparator();
-        }
-
-        menu.AddOption("Delete", "delete", () =>
-        {
-            var confirm = new PopupWindow(
-                "Delete File",
-                $"Are you sure you want to delete '{FileName}'?",
-                "Cancel",
-                new Dictionary<string, Action>()
-                {
-                    { "Delete", () =>
-                        {
-                            try
-                            {
-                                DeleteFileWithCompiled();
-                                Parent?.Dirty();
-                            }
-                            catch (Exception ex)
-                            {
-                                Log.Error($"Failed to delete file: {ex.Message}");
-                            }
-                        }
-                    }
-                }
-            );
-            confirm.Show();
-        });
 
         menu.OpenAtCursor();
         return true;
@@ -278,56 +229,6 @@ public class AssetFileNode : TreeNode
             }
         };
         dialog.Show();
-    }
-
-    private void DuplicateFile()
-    {
-        try
-        {
-            var directory = Path.GetDirectoryName(FullPath);
-            var nameWithoutExt = Path.GetFileNameWithoutExtension(FileName);
-            var extension = Path.GetExtension(FileName);
-
-            var newName = $"{nameWithoutExt}_copy{extension}";
-            var newPath = Path.Combine(directory, newName);
-
-            var counter = 1;
-            while (File.Exists(newPath))
-            {
-                newName = $"{nameWithoutExt}_copy{counter++}{extension}";
-                newPath = Path.Combine(directory, newName);
-            }
-
-            File.Copy(FullPath, newPath);
-            Parent?.Dirty();
-        }
-        catch (Exception ex)
-        {
-            Log.Error($"Failed to duplicate file: {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// Delete the file and its compiled _c version if it exists
-    /// </summary>
-    private void DeleteFileWithCompiled()
-    {
-        // If we have an Asset, use its Delete method which handles compiled files
-        if (Asset != null)
-        {
-            Asset.Delete();
-            return;
-        }
-
-        // Otherwise manually delete the file and any compiled version
-        File.Delete(FullPath);
-
-        // Check for compiled _c version and delete it too
-        var compiledPath = FullPath + "_c";
-        if (File.Exists(compiledPath))
-        {
-            File.Delete(compiledPath);
-        }
     }
 
     public override void OnRename(VirtualWidget item, string text, List<TreeNode> selection = null)

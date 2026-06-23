@@ -236,6 +236,12 @@ internal class IconGridCanvas : Widget
     private int _selectedIndex = -1;
     private HashSet<int> _selectedIndices = new();
 
+    // Anchor for shift range-selection (like the tree view)
+    private int _selectionAnchor = -1;
+
+    // Item whose asset should open in the inspector on mouse release (set on a plain click, cleared on drag)
+    private int _pendingInspectorIndex = -1;
+
     public Action<string> OnFolderNavigate;
 
     private const float ItemWidth = 80;
@@ -515,6 +521,7 @@ internal class IconGridCanvas : Widget
             if (delta.Length > 5)
             {
                 _isDragging = true;
+                _pendingInspectorIndex = -1; // a drag started, so don't open the inspector on release
                 StartDrag(_dragItemIndex);
             }
         }
@@ -536,10 +543,22 @@ internal class IconGridCanvas : Widget
             _dragStartPos = e.LocalPosition;
             _isDragging = false;
             _dragItemIndex = index;
+            _pendingInspectorIndex = -1;
 
             if (index >= 0)
             {
-                if (e.HasCtrl)
+                if (e.HasShift && _selectionAnchor >= 0)
+                {
+                    // Shift+click: select the contiguous range from the anchor to here
+                    _selectedIndices.Clear();
+                    int from = Math.Min(_selectionAnchor, index);
+                    int to = Math.Max(_selectionAnchor, index);
+                    for (int i = from; i <= to; i++)
+                        _selectedIndices.Add(i);
+
+                    _selectedIndex = index;
+                }
+                else if (e.HasCtrl)
                 {
                     // Ctrl+click: toggle selection
                     if (_selectedIndices.Contains(index))
@@ -548,6 +567,7 @@ internal class IconGridCanvas : Widget
                         _selectedIndices.Add(index);
 
                     _selectedIndex = index;
+                    _selectionAnchor = index;
                 }
                 else
                 {
@@ -555,11 +575,13 @@ internal class IconGridCanvas : Widget
                     _selectedIndices.Clear();
                     _selectedIndices.Add(index);
                     _selectedIndex = index;
-                }
+                    _selectionAnchor = index;
 
-                var item = _items[index];
-                if (!item.IsCloud && !item.IsFolder && item.Asset != null)
-                    EditorUtility.InspectorObject = item.Asset;
+                    // Open in inspector only on a real click (deferred to release so a drag doesn't trigger it)
+                    var item = _items[index];
+                    if (!item.IsCloud && !item.IsFolder && item.Asset != null)
+                        _pendingInspectorIndex = index;
+                }
 
                 Update();
             }
@@ -568,9 +590,24 @@ internal class IconGridCanvas : Widget
                 // Click on empty space: clear selection
                 _selectedIndices.Clear();
                 _selectedIndex = -1;
+                _selectionAnchor = -1;
                 Update();
             }
         }
+    }
+
+    protected override void OnMouseReleased(MouseEvent e)
+    {
+        base.OnMouseReleased(e);
+
+        if (e.LeftMouseButton && !_isDragging && _pendingInspectorIndex >= 0 && _pendingInspectorIndex < _items.Count)
+        {
+            var item = _items[_pendingInspectorIndex];
+            if (!item.IsCloud && !item.IsFolder && item.Asset != null)
+                EditorUtility.InspectorObject = item.Asset;
+        }
+
+        _pendingInspectorIndex = -1;
     }
 
     private void StartDrag(int index)
@@ -655,12 +692,15 @@ internal class IconGridCanvas : Widget
         if (string.IsNullOrEmpty(_currentFolder) || !Directory.Exists(_currentFolder))
             return;
 
+        // Report Copy for external (Explorer) sources, otherwise Windows deletes the originals
+        var effect = DragEffectFor(ev);
+
         // Check if dragging over a folder item
         int index = GetItemAtPosition(ev.LocalPosition);
         if (index >= 0 && _items[index].IsFolder)
         {
             // Dropping onto a folder
-            ev.Action = ev.HasCtrl ? DropAction.Copy : DropAction.Move;
+            ev.Action = effect;
             if (_hoveredIndex != index)
             {
                 _hoveredIndex = index;
@@ -670,8 +710,24 @@ internal class IconGridCanvas : Widget
         else if (ev.Data.HasFileOrFolder)
         {
             // Dropping into current folder
-            ev.Action = ev.HasCtrl ? DropAction.Copy : DropAction.Move;
+            ev.Action = effect;
         }
+    }
+
+    // The drop effect to report back to the OS: copying external (Explorer) files prevents Windows
+    // from deleting the originals as part of a "move".
+    private static DropAction DragEffectFor(DragEvent ev)
+    {
+        if (ev.HasCtrl)
+            return DropAction.Copy;
+
+        foreach (var file in ev.Data.Files)
+        {
+            if (AssetContextMenuHelper.IsExternalSource(file))
+                return DropAction.Copy;
+        }
+
+        return DropAction.Move;
     }
 
     /// <summary>
@@ -696,8 +752,8 @@ internal class IconGridCanvas : Widget
             targetFolder = _items[index].Path;
         }
 
-        // Process the drop
-        bool isCopy = ev.HasCtrl;
+        // Process the drop. Report Copy for external sources so Windows doesn't delete the originals.
+        bool isCopy = DragEffectFor(ev) == DropAction.Copy;
         ev.Action = isCopy ? DropAction.Copy : DropAction.Move;
 
         foreach (var file in ev.Data.Files)
@@ -708,6 +764,9 @@ internal class IconGridCanvas : Widget
             // Don't drop onto itself
             if (file.Equals(targetFolder, StringComparison.OrdinalIgnoreCase))
                 continue;
+
+            // Files dragged in from outside the project must always be copied, never moved
+            bool copyThis = isCopy || AssetContextMenuHelper.IsExternalSource(file);
 
             try
             {
@@ -721,10 +780,13 @@ internal class IconGridCanvas : Widget
                 if (Directory.Exists(file))
                 {
                     // It's a directory
-                    if (isCopy)
+                    if (copyThis)
                         CopyDirectory(file, destPath);
                     else
                         EditorUtility.RenameDirectory(file, destPath);
+
+                    // Register the dropped files so they compile immediately
+                    AssetContextMenuHelper.RegisterNewPath(destPath);
                 }
                 else if (File.Exists(file))
                 {
@@ -734,24 +796,27 @@ internal class IconGridCanvas : Widget
                     if (asset != null && !asset.IsDeleted)
                     {
                         // Use EditorUtility for proper asset handling
-                        if (isCopy)
+                        if (copyThis)
                             EditorUtility.CopyAssetToDirectory(asset, targetFolder);
                         else
                             EditorUtility.MoveAssetToDirectory(asset, targetFolder);
                     }
                     else
                     {
-                        // Regular file, not an asset
-                        if (isCopy)
+                        // Regular file, not an asset yet
+                        if (copyThis)
                             File.Copy(file, destPath, overwrite: false);
                         else
                             File.Move(file, destPath, overwrite: false);
+
+                        // Register it so it compiles immediately instead of appearing uncompiled
+                        AssetContextMenuHelper.RegisterNewPath(destPath);
                     }
                 }
             }
             catch (Exception ex)
             {
-                Log.Error($"Failed to {(isCopy ? "copy" : "move")} '{file}': {ex.Message}");
+                Log.Error($"Failed to {(copyThis ? "copy" : "move")} '{file}': {ex.Message}");
             }
         }
 
@@ -790,6 +855,16 @@ internal class IconGridCanvas : Widget
                 var createMenu = menu.AddMenu("Create", "add");
                 AssetCreator.AddOptions(createMenu, _currentFolder);
 
+                // Paste files copied from Windows Explorer into the current folder
+                if (WindowsClipboard.HasFiles())
+                {
+                    menu.AddOption("Paste", "content_paste", () =>
+                    {
+                        AssetContextMenuHelper.PasteFromClipboard(_currentFolder);
+                        LoadFolder(_currentFolder);
+                    });
+                }
+
                 menu.AddSeparator();
                 menu.AddOption("Open in Explorer", "folder_open", () => EditorUtility.OpenFolder(_currentFolder));
                 menu.AddOption("Refresh", "refresh", () => LoadFolder(_currentFolder));
@@ -802,16 +877,16 @@ internal class IconGridCanvas : Widget
         // If right-clicking on a selected item and multiple items are selected, show multi-select menu
         if (_selectedIndices.Contains(index) && _selectedIndices.Count > 1)
         {
-            var selectedAssets = _selectedIndices
+            var selectedFiles = _selectedIndices
                 .Where(i => i >= 0 && i < _items.Count)
                 .Select(i => _items[i])
-                .Where(i => !i.IsCloud && !i.IsFolder && i.Asset != null)
-                .Select(i => i.Asset)
+                .Where(i => !i.IsCloud && !i.IsFolder)
+                .Select(i => (i.Path, i.Asset))
                 .ToList();
 
-            if (selectedAssets.Count > 0)
+            if (selectedFiles.Count > 0)
             {
-                AssetContextMenuHelper.AddMultiAssetTypeOptions(menu, selectedAssets);
+                AssetContextMenuHelper.BuildMultiFileMenu(menu, selectedFiles, () => LoadFolder(_currentFolder));
             }
 
             menu.OpenAtCursor();
@@ -840,70 +915,24 @@ internal class IconGridCanvas : Widget
         }
         else if (item.IsFolder)
         {
-            menu.AddOption("Open", "folder_open", () => OnFolderNavigate?.Invoke(item.Path));
-            menu.AddOption("Open in Explorer", "launch", () => EditorUtility.OpenFolder(item.Path));
-
-            menu.AddSeparator();
-
-            menu.AddOption("Rename", "edit", () => StartRename(index));
-
-            menu.AddSeparator();
-
-            menu.AddOption("Copy Path", "content_copy", () => EditorUtility.Clipboard.Copy(item.Path));
-
-            menu.AddSeparator();
-
-            // Create submenu inside folder
-            var createMenu = menu.AddMenu("Create", "add");
-            AssetCreator.AddOptions(createMenu, item.Path);
-
-            menu.AddSeparator();
-
-            menu.AddOption("Delete", "delete", () => DeleteFolder(item.Path, item.Name));
+            AssetContextMenuHelper.BuildFolderMenu(
+                menu,
+                item.Path,
+                item.Name,
+                isRoot: false,
+                onOpen: () => OnFolderNavigate?.Invoke(item.Path),
+                onRename: () => StartRename(index),
+                onRefresh: () => LoadFolder(_currentFolder),
+                onDeleted: () => LoadFolder(_currentFolder));
         }
         else
         {
-            // Open options
-            if (item.Asset != null)
-            {
-                menu.AddOption("Open in Editor", "edit", () => item.Asset.OpenInEditor());
-            }
-            else
-            {
-                menu.AddOption("Open", "open_in_new", () => EditorUtility.OpenFolder(item.Path));
-            }
-            menu.AddOption("Show in Explorer", "folder_open", () => EditorUtility.OpenFileFolder(item.Path));
-
-            menu.AddSeparator();
-
-            // Copy options
-            if (item.Asset != null)
-            {
-                menu.AddOption("Copy Relative Path", "content_paste_go", () => EditorUtility.Clipboard.Copy(item.Asset.RelativePath));
-            }
-            menu.AddOption("Copy Absolute Path", "content_paste", () => EditorUtility.Clipboard.Copy(item.Path));
-
-            // Asset-type specific options (Create Material, Create Texture, etc.)
-            AssetContextMenuHelper.AddAssetTypeOptions(menu, item.Asset);
-
-            menu.AddSeparator();
-
-            // Edit options
-            menu.AddOption("Rename", "edit", () => StartRename(_items.IndexOf(item)));
-            menu.AddOption("Duplicate", "file_copy", () => DuplicateFile(item.Path));
-
-            menu.AddSeparator();
-
-            // Create submenu for quick asset creation in same folder
-            var parentFolder = Path.GetDirectoryName(item.Path);
-            if (!string.IsNullOrEmpty(parentFolder))
-            {
-                var createMenu = menu.AddMenu("Create", "add");
-                AssetCreator.AddOptions(createMenu, parentFolder);
-                menu.AddSeparator();
-            }
-
-            menu.AddOption("Delete", "delete", () => DeleteFile(item.Path, item.Name));
+            AssetContextMenuHelper.BuildFileMenu(
+                menu,
+                item.Path,
+                item.Asset,
+                onRename: () => StartRename(_items.IndexOf(item)),
+                onChanged: () => LoadFolder(_currentFolder));
         }
 
         menu.OpenAtCursor();
@@ -955,85 +984,6 @@ internal class IconGridCanvas : Widget
         dialog.Show();
     }
 
-
-    private void DuplicateFile(string filePath)
-    {
-        try
-        {
-            var directory = Path.GetDirectoryName(filePath);
-            var nameWithoutExt = Path.GetFileNameWithoutExtension(filePath);
-            var extension = Path.GetExtension(filePath);
-
-            var newName = $"{nameWithoutExt}_copy{extension}";
-            var newPath = Path.Combine(directory, newName);
-
-            var counter = 1;
-            while (File.Exists(newPath))
-            {
-                newName = $"{nameWithoutExt}_copy{counter++}{extension}";
-                newPath = Path.Combine(directory, newName);
-            }
-
-            File.Copy(filePath, newPath);
-            LoadFolder(_currentFolder);
-        }
-        catch (Exception ex)
-        {
-            Log.Error($"Failed to duplicate file: {ex.Message}");
-        }
-    }
-
-    private void DeleteFile(string filePath, string fileName)
-    {
-        var confirm = new PopupWindow(
-            "Delete File",
-            $"Are you sure you want to delete '{fileName}'?",
-            "Cancel",
-            new Dictionary<string, Action>()
-            {
-                { "Delete", () =>
-                    {
-                        try
-                        {
-                            File.Delete(filePath);
-                            LoadFolder(_currentFolder);
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Error($"Failed to delete file: {ex.Message}");
-                        }
-                    }
-                }
-            }
-        );
-        confirm.Show();
-    }
-
-    private void DeleteFolder(string folderPath, string folderName)
-    {
-        var confirm = new PopupWindow(
-            "Delete Folder",
-            $"Are you sure you want to delete '{folderName}'?\nAll contents will be deleted.",
-            "Cancel",
-            new Dictionary<string, Action>()
-            {
-                { "Delete", () =>
-                    {
-                        try
-                        {
-                            Directory.Delete(folderPath, recursive: true);
-                            LoadFolder(_currentFolder);
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Error($"Failed to delete folder: {ex.Message}");
-                        }
-                    }
-                }
-            }
-        );
-        confirm.Show();
-    }
 
     private static string GetIconForExtension(string ext)
     {

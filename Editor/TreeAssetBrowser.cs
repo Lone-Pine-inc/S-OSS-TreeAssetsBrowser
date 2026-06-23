@@ -18,7 +18,7 @@ namespace GeneralGame.Editor;
 public class TreeAssetBrowser : Widget
 {
     private List<Widget> _panels = new();
-    private List<Splitter> _splitters = new();
+    private List<PanelSplitter> _splitters = new();
     private Widget _panelsContainer;
     private Widget _mainToolbar;
     private Widget _tabsContainer;
@@ -235,8 +235,6 @@ public class TreeAssetBrowser : Widget
     /// </summary>
     public void AddTreePanel(bool saveState = true)
     {
-        AddSplitterIfNeeded();
-
         // Generate unique panel ID within this browser
         var panelId = $"{_instanceId}_Panel{_panels.Count}";
         var panel = new AssetBrowserPanel(_panelsContainer, panelId);
@@ -252,8 +250,7 @@ public class TreeAssetBrowser : Widget
         // Sync folder selection with all IconGridPanels
         panel.OnFolderClicked = OnFolderSelectedInTree;
 
-        _panelsContainer.Layout.Add(panel);
-        _panels.Add(panel);
+        AddPanelToContainer(panel);
 
         _activeTabIndex = _panels.Count - 1;
         UpdatePanelButtons();
@@ -274,15 +271,12 @@ public class TreeAssetBrowser : Widget
     /// </summary>
     public void AddIconGridPanel(bool saveState = true)
     {
-        AddSplitterIfNeeded();
-
         var panel = new IconGridPanel(_panelsContainer);
         panel.OnCloseRequested = () => RemovePanel(panel);
         panel.OnMoveLeftRequested = () => MovePanelLeft(panel);
         panel.OnMoveRightRequested = () => MovePanelRight(panel);
 
-        _panelsContainer.Layout.Add(panel);
-        _panels.Add(panel);
+        AddPanelToContainer(panel);
 
         _activeTabIndex = _panels.Count - 1;
         UpdatePanelButtons();
@@ -303,8 +297,6 @@ public class TreeAssetBrowser : Widget
     /// </summary>
     public void AddCloudAssetPanel(bool saveState = true)
     {
-        AddSplitterIfNeeded();
-
         var panel = new CloudAssetPanel(_panelsContainer);
         panel.OnCloseRequested = () => RemovePanel(panel);
         panel.OnMoveLeftRequested = () => MovePanelLeft(panel);
@@ -313,8 +305,7 @@ public class TreeAssetBrowser : Widget
         // Sync cloud asset selection with all CloudIconGridPanels
         panel.OnCloudAssetsLoaded = OnCloudAssetsLoaded;
 
-        _panelsContainer.Layout.Add(panel);
-        _panels.Add(panel);
+        AddPanelToContainer(panel);
 
         _activeTabIndex = _panels.Count - 1;
         UpdatePanelButtons();
@@ -335,15 +326,12 @@ public class TreeAssetBrowser : Widget
     /// </summary>
     public void AddCloudIconGridPanel(bool saveState = true)
     {
-        AddSplitterIfNeeded();
-
         var panel = new CloudIconGridPanel(_panelsContainer);
         panel.OnCloseRequested = () => RemovePanel(panel);
         panel.OnMoveLeftRequested = () => MovePanelLeft(panel);
         panel.OnMoveRightRequested = () => MovePanelRight(panel);
 
-        _panelsContainer.Layout.Add(panel);
-        _panels.Add(panel);
+        AddPanelToContainer(panel);
 
         _activeTabIndex = _panels.Count - 1;
         UpdatePanelButtons();
@@ -359,18 +347,25 @@ public class TreeAssetBrowser : Widget
         }
     }
 
-    /// <summary>
-    /// Add splitter before new panel if not the first one
-    /// </summary>
-    private void AddSplitterIfNeeded()
+    private void AddPanelToContainer(Widget panel)
     {
+        // Insert a draggable splitter between the previous panel and the new one
         if (_panels.Count > 0)
         {
-            var splitter = new Splitter(_panelsContainer);
-            splitter.IsVertical = true;
+            var left = _panels[_panels.Count - 1];
+            var splitter = new PanelSplitter(_panelsContainer, left, panel);
             _panelsContainer.Layout.Add(splitter);
             _splitters.Add(splitter);
         }
+
+        _panelsContainer.Layout.Add(panel);
+        _panels.Add(panel);
+    }
+
+    private static void ClearFixedWidth(Widget panel)
+    {
+        panel.MinimumWidth = 0;
+        panel.MaximumWidth = 1000000;
     }
 
     /// <summary>
@@ -420,17 +415,13 @@ public class TreeAssetBrowser : Widget
         // Destroy the panel widget
         panel.Destroy();
 
-        // Remove associated splitter
-        if (_splitters.Count > 0)
+        // Rebuild splitters so their neighbour references stay valid
+        RebuildPanelsLayout();
+
+        // A single remaining panel should fill the whole container
+        if (_panels.Count == 1)
         {
-            // If removing first panel, remove first splitter
-            // If removing other panel, remove splitter before it (index - 1)
-            int splitterIndex = index > 0 ? index - 1 : 0;
-            if (splitterIndex < _splitters.Count)
-            {
-                _splitters[splitterIndex].Destroy();
-                _splitters.RemoveAt(splitterIndex);
-            }
+            ClearFixedWidth(_panels[0]);
         }
 
         // Adjust active tab index if needed
@@ -445,6 +436,10 @@ public class TreeAssetBrowser : Widget
             for (int i = 0; i < _panels.Count; i++)
             {
                 _panels[i].Visible = (i == _activeTabIndex);
+            }
+            foreach (var splitter in _splitters)
+            {
+                splitter.Visible = false;
             }
             RebuildTabBar();
 
@@ -528,8 +523,7 @@ public class TreeAssetBrowser : Widget
         {
             if (i > 0)
             {
-                var splitter = new Splitter(_panelsContainer);
-                splitter.IsVertical = true;
+                var splitter = new PanelSplitter(_panelsContainer, _panels[i - 1], _panels[i]);
                 _panelsContainer.Layout.Add(splitter);
                 _splitters.Add(splitter);
             }
@@ -636,9 +630,10 @@ public class TreeAssetBrowser : Widget
             splitter.Visible = false;
         }
 
-        // Show only active panel
+        // Show only active panel; clear any drag-set widths so it fills the area
         for (int i = 0; i < _panels.Count; i++)
         {
+            ClearFixedWidth(_panels[i]);
             _panels[i].Visible = (i == _activeTabIndex);
         }
 

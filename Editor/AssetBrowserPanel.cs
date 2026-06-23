@@ -243,7 +243,7 @@ public class AssetBrowserPanel : Widget, IBrowserPanel
         // Tree view with drag-drop support
         _treeView = Layout.Add(new AssetTreeView(this));
         _treeView.SetSizeMode(SizeMode.CanGrow, SizeMode.CanGrow);
-        _treeView.MultiSelect = false;
+        _treeView.MultiSelect = true;
         _treeView.ItemSpacing = 1;
         _treeView.IndentWidth = 16;
 
