@@ -16,7 +16,7 @@
   },
   "SceneView.Viewport0.Settings": {
     "Value": "{\u0022CameraPosition\u0022:\u0022-436.396759,-10.2372303,198.297623\u0022,\u0022CameraRotation\u0022:\u00220.00925445836,0.240897655,-0.037256036,0.969791114\u0022,\u0022View\u0022:0,\u0022RenderMode\u0022:0,\u0022WireframeMode\u0022:false,\u0022EnablePostProcessing\u0022:true,\u0022EnablePrefabLighting\u0022:true,\u0022ShowSkyIn2D\u0022:true,\u0022ShowGrid\u0022:true,\u0022GridOpacity\u0022:0.2,\u0022GridAxis\u0022:0,\u0022CameraOrthoHeight\u0022:1000}",
-    "Timeout": 1784810747,
+    "Timeout": 1784810808,
     "DeleteAt": 0
   },
   "gizmo.settings": {
@@ -86,17 +86,17 @@
   },
   "TreeAssetBrowser.Browser_0.State": {
     "Value": "{\u0022IsTabMode\u0022:false,\u0022ActiveTabIndex\u0022:1,\u0022PanelTypes\u0022:[\u0022Tree\u0022,\u0022IconGrid\u0022]}",
-    "Timeout": 1784810171,
+    "Timeout": 1784810764,
     "DeleteAt": 0
   },
   "TreeAssetBrowser.AllInstanceIds": {
     "Value": "[\u0022Browser_0\u0022]",
-    "Timeout": 1784810171,
+    "Timeout": 1784810764,
     "DeleteAt": 0
   },
   "new scene.scene.Viewport0": {
     "Value": "{\u0022CameraPosition\u0022:\u0022-436.396759,-10.2372303,198.297623\u0022,\u0022CameraRotation\u0022:\u00220.00925445836,0.240897655,-0.037256036,0.969791114\u0022,\u0022CameraOrthoHeight\u0022:1000}",
-    "Timeout": 1784810747,
+    "Timeout": 1784810808,
     "DeleteAt": 0
   },
   "TreeAssetBrowser.Browser_0_Panel2.ExpandedPaths": {
@@ -106,7 +106,12 @@
   },
   "TreeAssetBrowser.Browser_0_Panel0.ExpandedPaths": {
     "Value": "[\u0022__header__s\\u0026box\u0022,\u0022C:\\\\Users\\\\Lecoo\\\\Documents\\\\GitHub\\\\S-TreeAssetsBrowser\\\\Assets\u0022]",
-    "Timeout": 1784810193,
+    "Timeout": 1784810764,
+    "DeleteAt": 0
+  },
+  "TreeAssetBrowser.Settings.ShowTreeIcons": {
+    "Value": "true",
+    "Timeout": 1784810774,
     "DeleteAt": 0
   }
 }
