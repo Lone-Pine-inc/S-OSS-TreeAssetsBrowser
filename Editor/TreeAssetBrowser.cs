@@ -131,6 +131,12 @@ public class TreeAssetBrowser : Widget
         addBtn.Background = Color.Transparent;
         addBtn.OnClick = ShowAddPanelMenu;
 
+        // Settings button (browser-wide settings dropdown)
+        var settingsBtn = _mainToolbar.Layout.Add(new IconButton("settings"));
+        settingsBtn.ToolTip = "Browser Settings";
+        settingsBtn.Background = Color.Transparent;
+        settingsBtn.OnClick = ShowSettingsPopup;
+
         // Panels container (horizontal layout with splitters)
         _panelsContainer = Layout.Add(new Widget(this));
         _panelsContainer.Layout = Layout.Row();
@@ -213,6 +219,12 @@ public class TreeAssetBrowser : Widget
             CloudIconGridPanel => "CloudIconGrid",
             _ => "Unknown"
         };
+    }
+
+    private void ShowSettingsPopup()
+    {
+        var popup = new BrowserSettingsPopup();
+        popup.OpenBelowCursor(8);
     }
 
     /// <summary>

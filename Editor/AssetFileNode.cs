@@ -124,6 +124,19 @@ public class AssetFileNode : TreeNode
 
         rect.Left += 20;
 
+        // Optionally draw the asset thumbnail right next to the type icon
+        if (BrowserSettings.ShowTreeIcons)
+        {
+            var thumb = GetThumbnail();
+            if (thumb != null)
+            {
+                const float thumbSize = 16f;
+                var thumbRect = new Rect(rect.Left, rect.Top + (rect.Height - thumbSize) / 2, thumbSize, thumbSize);
+                Paint.Draw(thumbRect, thumb);
+                rect.Left += thumbSize + 4;
+            }
+        }
+
         // Draw filename
         Paint.SetPen(Theme.Text);
         Paint.SetDefaultFont(8, 400);
@@ -137,6 +150,24 @@ public class AssetFileNode : TreeNode
         Paint.SetPen(Theme.Text.WithAlpha(0.4f));
         Paint.SetDefaultFont(7, 400);
         Paint.DrawText(rect, Extension, TextFlag.LeftCenter);
+    }
+
+    private Pixmap _thumbnail;
+    private bool _thumbnailRequested;
+
+    // Lazily fetches the asset thumbnail (only assets have one), cached after the first request.
+    private Pixmap GetThumbnail()
+    {
+        if (!_thumbnailRequested)
+        {
+            _thumbnailRequested = true;
+            if (Asset != null)
+            {
+                try { _thumbnail = Asset.GetAssetThumb(); }
+                catch { _thumbnail = null; }
+            }
+        }
+        return _thumbnail;
     }
 
     private string GetIcon()

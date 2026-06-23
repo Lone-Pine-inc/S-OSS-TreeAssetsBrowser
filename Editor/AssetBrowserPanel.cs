@@ -132,6 +132,9 @@ public class AssetBrowserPanel : Widget, IBrowserPanel
         // Subscribe to folder state changes
         AssetFolderNode.OnExpandedStateChanged += OnFolderExpandedStateChanged;
 
+        // Repaint the tree when browser settings (e.g. icon visibility) change
+        BrowserSettings.OnChanged += OnBrowserSettingsChanged;
+
         CreateUI();
         RefreshTree();
     }
@@ -140,7 +143,13 @@ public class AssetBrowserPanel : Widget, IBrowserPanel
     {
         base.OnDestroyed();
         AssetFolderNode.OnExpandedStateChanged -= OnFolderExpandedStateChanged;
+        BrowserSettings.OnChanged -= OnBrowserSettingsChanged;
         AssetFolderNode.PathsToAutoExpandByPanel.Remove(this);
+    }
+
+    private void OnBrowserSettingsChanged()
+    {
+        _treeView?.Update();
     }
 
     private void OnFolderExpandedStateChanged(object panelKey, string fullPath, bool isExpanded)
